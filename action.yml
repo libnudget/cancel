@@ -1,6 +1,6 @@
 ---
 name: Cancel
-description: Cancel in-progress and queued workflow runs for a branch
+description: Cancel in-progress and queued workflow runs
 
 inputs:
   repo:
@@ -17,16 +17,20 @@ runs:
     - name: Cancel in-progress runs
       shell: bash
       run: |
-        ids=$(gh run list --status in_progress --branch "${{ inputs.branch }}" --repo ${{ inputs.repo }} --json databaseId --jq '.[].databaseId')
-        [ -n "$ids" ] && echo "$ids" | xargs -I{} gh run cancel {} --repo ${{ inputs.repo }}
-        [ -z "$ids" ] && echo "No in-progress runs"
+        ids=$(gh run list --status in_progress --branch "$BRANCH" -R "$REPO" --json databaseId --jq '.[].databaseId')
+        [ -n "$ids" ] && echo "$ids" | xargs -I{} gh run cancel {} -R "$REPO"
+        [ -z "$ids" ] || echo "Canceled: $ids"
       env:
+        BRANCH: ${{ inputs.branch }}
+        REPO: ${{ inputs.repo }}
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Cancel queued runs
       shell: bash
       run: |
-        ids=$(gh run list --status queued --branch "${{ inputs.branch }}" --repo ${{ inputs.repo }} --json databaseId --jq '.[].databaseId')
-        [ -n "$ids" ] && echo "$ids" | xargs -I{} gh run cancel {} --repo ${{ inputs.repo }}
+        ids=$(gh run list --status queued --branch "$BRANCH" -R "$REPO" --json databaseId --jq '.[].databaseId')
+        [ -n "$ids" ] && echo "$ids" | xargs -I{} gh run cancel {} -R "$REPO"
       env:
+        BRANCH: ${{ inputs.branch }}
+        REPO: ${{ inputs.repo }}
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
