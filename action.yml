@@ -1,0 +1,32 @@
+---
+name: Cancel
+description: Cancel in-progress and queued workflow runs for a branch
+
+inputs:
+  repo:
+    description: Repository (owner/name)
+    required: false
+    default: ${{ github.repository }}
+  branch:
+    description: Branch to cancel runs for
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Cancel in-progress runs
+      shell: bash
+      run: |
+        ids=$(gh run list --status in_progress --branch "${{ inputs.branch }}" --repo ${{ inputs.repo }} --json databaseId --jq '.[].databaseId')
+        [ -n "$ids" ] && echo "$ids" | xargs -I{} gh run cancel {} --repo ${{ inputs.repo }}
+        [ -z "$ids" ] && echo "No in-progress runs"
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Cancel queued runs
+      shell: bash
+      run: |
+        ids=$(gh run list --status queued --branch "${{ inputs.branch }}" --repo ${{ inputs.repo }} --json databaseId --jq '.[].databaseId')
+        [ -n "$ids" ] && echo "$ids" | xargs -I{} gh run cancel {} --repo ${{ inputs.repo }}
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
