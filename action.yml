@@ -10,6 +10,10 @@ inputs:
   branch:
     description: Branch to cancel runs for
     required: true
+  token:
+    description: GitHub token
+    required: false
+    default: ${{ secrets.GITHUB_TOKEN }}
 
 runs:
   using: composite
@@ -23,7 +27,7 @@ runs:
       env:
         BRANCH: ${{ inputs.branch }}
         REPO: ${{ inputs.repo }}
-        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GH_TOKEN: ${{ inputs.token }}
 
     - name: Cancel queued runs
       shell: bash
@@ -33,4 +37,4 @@ runs:
       env:
         BRANCH: ${{ inputs.branch }}
         REPO: ${{ inputs.repo }}
-        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GH_TOKEN: ${{ inputs.token }}
