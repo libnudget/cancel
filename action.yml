@@ -12,8 +12,7 @@ inputs:
     required: true
   token:
     description: GitHub token
-    required: false
-    default: ${{ secrets.GITHUB_TOKEN }}
+    required: true
 
 runs:
   using: composite
