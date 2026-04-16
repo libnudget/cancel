@@ -20,9 +20,13 @@ runs:
     - name: Cancel in-progress runs
       shell: bash
       run: |
-        ids=$(gh run list --status in_progress --branch "$BRANCH" -R "$REPO" --json databaseId --jq '.[].databaseId')
-        [ -n "$ids" ] && echo "$ids" | xargs -I{} gh run cancel {} -R "$REPO"
-        [ -z "$ids" ] || echo "Canceled: $ids"
+        ids=$(gh run list --status in_progress --branch "$BRANCH" -R "$REPO" --json databaseId --jq '.[].databaseId' 2>/dev/null || echo "")
+        if [ -n "$ids" ]; then
+          echo "$ids" | xargs -I{} gh run cancel {} -R "$REPO" 2>/dev/null || true
+          echo "Canceled in-progress: $ids"
+        else
+          echo "No in-progress runs"
+        fi
       env:
         BRANCH: ${{ inputs.branch }}
         REPO: ${{ inputs.repo }}
@@ -31,8 +35,13 @@ runs:
     - name: Cancel queued runs
       shell: bash
       run: |
-        ids=$(gh run list --status queued --branch "$BRANCH" -R "$REPO" --json databaseId --jq '.[].databaseId')
-        [ -n "$ids" ] && echo "$ids" | xargs -I{} gh run cancel {} -R "$REPO"
+        ids=$(gh run list --status queued --branch "$BRANCH" -R "$REPO" --json databaseId --jq '.[].databaseId' 2>/dev/null || echo "")
+        if [ -n "$ids" ]; then
+          echo "$ids" | xargs -I{} gh run cancel {} -R "$REPO" 2>/dev/null || true
+          echo "Canceled queued: $ids"
+        else
+          echo "No queued runs"
+        fi
       env:
         BRANCH: ${{ inputs.branch }}
         REPO: ${{ inputs.repo }}
