@@ -9,6 +9,8 @@ Cancel in-progress and queued workflow runs for a branch.
 
 ## Usage
 
+### Comment-based trigger
+
 ```yaml
 name: Cancel Runs Bot
 
@@ -32,12 +34,34 @@ jobs:
           branch: ${{ steps.branch.outputs.branch }}
 ```
 
-## Trigger Command
+### Label-based trigger
+
+```yaml
+name: Cancel Runs Bot
+
+on:
+  pull_request:
+    types: [labeled]
+
+jobs:
+  cancel:
+    if: github.event.label.name == 'cancel-runs'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: libnudget/cancel@v1
+        with:
+          pr_number: ${{ github.event.pull_request.number }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+```
+
+## Trigger Commands
 
 ```bash
-# In a PR comment
+# Comment on PR
 /cancel-runs
-/cancel-runs help
+
+# Label PR
+cancel-runs
 ```
 
 ## Inputs
@@ -45,11 +69,18 @@ jobs:
 | Input | Description | Required | Default |
 |-------|-------------|----------|---------|
 | repo | Repository | No | current repo |
-| branch | Branch to cancel runs for | Yes | - |
+| branch | Branch to cancel runs for | No* | - |
+| pr_number | PR number to get branch from | No* | - |
+| token | GitHub token | Yes | - |
 
-## Example
+*Either `branch` or `pr_number` is required.
+
+## Examples
 
 **Comment:** `/cancel-runs`
+**Bot:** Cancels all runs on the PR branch
+
+**Label:** `cancel-runs`
 **Bot:** Cancels all runs on the PR branch
 
 ## License
