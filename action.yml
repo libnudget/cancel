@@ -41,8 +41,14 @@ runs:
         fi
         ids=$(gh run list --status in_progress --branch "$CANCEL_BRANCH" -R "$REPO" --json databaseId --jq '.[].databaseId' 2>/dev/null || echo "")
         if [ -n "$ids" ]; then
-          echo "$ids" | xargs -I{} gh run cancel {} -R "$REPO" 2>/dev/null || true
-          echo "Canceled in-progress: $ids"
+          # Exclude current run to avoid canceling itself
+          ids=$(echo "$ids" | grep -v "^$RUN_ID$" || echo "")
+          if [ -n "$ids" ]; then
+            echo "$ids" | xargs -I{} gh run cancel {} -R "$REPO" 2>/dev/null || true
+            echo "Canceled in-progress: $ids"
+          else
+            echo "No in-progress runs (excluding self)"
+          fi
         else
           echo "No in-progress runs"
         fi
@@ -51,6 +57,7 @@ runs:
         PR_NUM: ${{ inputs.pr_number }}
         REPO: ${{ inputs.repo }}
         GH_TOKEN: ${{ inputs.token }}
+        RUN_ID: ${{ github.run_id }}
 
     - name: Cancel queued runs
       shell: bash
@@ -62,8 +69,14 @@ runs:
         fi
         ids=$(gh run list --status queued --branch "$CANCEL_BRANCH" -R "$REPO" --json databaseId --jq '.[].databaseId' 2>/dev/null || echo "")
         if [ -n "$ids" ]; then
-          echo "$ids" | xargs -I{} gh run cancel {} -R "$REPO" 2>/dev/null || true
-          echo "Canceled queued: $ids"
+          # Exclude current run to avoid canceling itself
+          ids=$(echo "$ids" | grep -v "^$RUN_ID$" || echo "")
+          if [ -n "$ids" ]; then
+            echo "$ids" | xargs -I{} gh run cancel {} -R "$REPO" 2>/dev/null || true
+            echo "Canceled queued: $ids"
+          else
+            echo "No queued runs (excluding self)"
+          fi
         else
           echo "No queued runs"
         fi
@@ -72,3 +85,4 @@ runs:
         PR_NUM: ${{ inputs.pr_number }}
         REPO: ${{ inputs.repo }}
         GH_TOKEN: ${{ inputs.token }}
+        RUN_ID: ${{ github.run_id }}
