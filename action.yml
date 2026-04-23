@@ -9,7 +9,10 @@ inputs:
     default: ${{ github.repository }}
   branch:
     description: Branch to cancel runs for
-    required: true
+    required: false
+  pr_number:
+    description: PR number to get branch from
+    required: false
   token:
     description: GitHub token
     required: true
@@ -17,10 +20,26 @@ inputs:
 runs:
   using: composite
   steps:
+    - name: Get branch from PR
+      if: inputs.pr_number != ''
+      shell: bash
+      run: |
+        BRANCH=$(gh pr view "$PR_NUM" -R "$REPO" --json headRefName --jq '.headRefName')
+        echo "BRANCH=$BRANCH" >> $GITHUB_OUTPUT
+      env:
+        PR_NUM: ${{ inputs.pr_number }}
+        REPO: ${{ inputs.repo }}
+        GH_TOKEN: ${{ inputs.token }}
+
     - name: Cancel in-progress runs
       shell: bash
       run: |
-        ids=$(gh run list --status in_progress --branch "$BRANCH" -R "$REPO" --json databaseId --jq '.[].databaseId' 2>/dev/null || echo "")
+        if [ -n "$PR_NUM" ]; then
+          CANCEL_BRANCH=$(gh pr view "$PR_NUM" -R "$REPO" --json headRefName --jq '.headRefName')
+        else
+          CANCEL_BRANCH="$BRANCH"
+        fi
+        ids=$(gh run list --status in_progress --branch "$CANCEL_BRANCH" -R "$REPO" --json databaseId --jq '.[].databaseId' 2>/dev/null || echo "")
         if [ -n "$ids" ]; then
           echo "$ids" | xargs -I{} gh run cancel {} -R "$REPO" 2>/dev/null || true
           echo "Canceled in-progress: $ids"
@@ -29,13 +48,19 @@ runs:
         fi
       env:
         BRANCH: ${{ inputs.branch }}
+        PR_NUM: ${{ inputs.pr_number }}
         REPO: ${{ inputs.repo }}
         GH_TOKEN: ${{ inputs.token }}
 
     - name: Cancel queued runs
       shell: bash
       run: |
-        ids=$(gh run list --status queued --branch "$BRANCH" -R "$REPO" --json databaseId --jq '.[].databaseId' 2>/dev/null || echo "")
+        if [ -n "$PR_NUM" ]; then
+          CANCEL_BRANCH=$(gh pr view "$PR_NUM" -R "$REPO" --json headRefName --jq '.headRefName')
+        else
+          CANCEL_BRANCH="$BRANCH"
+        fi
+        ids=$(gh run list --status queued --branch "$CANCEL_BRANCH" -R "$REPO" --json databaseId --jq '.[].databaseId' 2>/dev/null || echo "")
         if [ -n "$ids" ]; then
           echo "$ids" | xargs -I{} gh run cancel {} -R "$REPO" 2>/dev/null || true
           echo "Canceled queued: $ids"
@@ -44,5 +69,6 @@ runs:
         fi
       env:
         BRANCH: ${{ inputs.branch }}
+        PR_NUM: ${{ inputs.pr_number }}
         REPO: ${{ inputs.repo }}
         GH_TOKEN: ${{ inputs.token }}
